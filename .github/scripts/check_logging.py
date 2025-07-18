@@ -34,7 +34,8 @@ def parse_diff_with_line_numbers(filepath: str, diff_range: str) -> List[Tuple[i
         if line.startswith('@@'):
             match = re.search(r'\+(\d+)', line)
             if match:
-                current_line = int(match.group(1)) - 1  # initialize before first addition
+                current_line = int(match.group(1)) - 1
+                print(current_line)# initialize before first addition
         elif line.startswith('+') and not line.startswith('+++'):
             if current_line is not None:
                 current_line += 1
