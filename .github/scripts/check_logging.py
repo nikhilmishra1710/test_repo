@@ -7,7 +7,7 @@ def check_for_logging_info():
     # Get staged files
     diff_range = os.environ.get("DIFF_RANGE", "HEAD^..HEAD")
     result = subprocess.run(
-        ['git', 'diff', '--name-only', '--diff-filter=ACM', diff_range],
+        ['git', 'diff', '--name-only', diff_range],
         stdout=subprocess.PIPE,
         text=True
     )
