@@ -70,19 +70,26 @@ def main():
     diff_range = os.environ.get("DIFF_RANGE", "HEAD^..HEAD")
     changed_files = get_changed_files(diff_range)
 
-    total_violations = []
+    total_count = 0
+    per_file_violations = []
+
     for file in changed_files:
         if os.path.exists(file):
             violations = check_logging_info(file, diff_range)
-            total_violations.append(f"{file}: {violations}")
-            
+            if violations > 0:
+                per_file_violations.append(f"{file}: {violations}")
+                total_count += violations
+
     github_output = os.environ.get("GITHUB_OUTPUT")
     if github_output:
         with open(github_output, "a") as f:
-            f.write(f"logging_info_violations={"\n".join(total_violations)}\n")
-    
-    if total_violations:
+            f.write(f"logging_info_violations_count={total_count}\n")
+            f.write("logging_info_violations_detail=" + "%0A".join(per_file_violations) + "\n")  # %0A = newline in GitHub Actions
+            f.write(f"failed={'true' if total_count > 0 else 'false'}\n")
+
+    if total_count > 0:
         sys.exit(1)
+
 
 
 if __name__ == "__main__":

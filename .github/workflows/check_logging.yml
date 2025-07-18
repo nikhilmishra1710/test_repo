@@ -47,7 +47,7 @@ jobs:
               env:
                   DIFF_RANGE: ${{ steps.diff.outputs.range }}
               run: |
-                  python /tmp/scripts/check_logging.py || echo "failed=true" >> $GITHUB_OUTPUT
+                  python /tmp/scripts/check_logging.py
 
             - name: Comment on PR
               if: steps.logcheck.outputs.failed == 'true'
