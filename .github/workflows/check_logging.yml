@@ -1,4 +1,4 @@
-name: Check Logging on PR
+name: check-logging
 
 on:
     pull_request:
