@@ -51,7 +51,7 @@ def check_logging_info(filepath: str, diff_range: str) -> bool:
     """
     Check for `logging.info(...)` usage in added lines of a given file.
     """
-    found = False
+    count = 0
     try:
         added_lines = parse_diff_with_line_numbers(filepath, diff_range)
         for lineno, line in added_lines:
@@ -63,24 +63,28 @@ def check_logging_info(filepath: str, diff_range: str) -> bool:
             ):
                 print(f"{filepath}:{lineno}: {line}")
                 print(f"::error file={filepath},line={lineno}::Avoid using logging.info in production code.")
-                found = True
+                count += 1
     except subprocess.CalledProcessError as e:
         print(f"Failed to parse diff for {filepath}: {e}", file=sys.stderr)
 
-    return found
+    return count
 
 
 def main():
     diff_range = os.environ.get("DIFF_RANGE", "HEAD^..HEAD")
     changed_files = get_changed_files(diff_range)
 
-    had_error = False
+    total_violations = 0
     for file in changed_files:
         if os.path.exists(file):
-            if check_logging_info(file, diff_range):
-                had_error = True
-
-    if had_error:
+            total_violations += check_logging_info(file, diff_range)
+            
+    github_output = os.environ.get("GITHUB_OUTPUT")
+    if github_output:
+        with open(github_output, "a") as f:
+            f.write(f"logging_info_violations={int(total_violations)}\n")
+    
+    if total_violations > 0:
         sys.exit(1)
 
 

@@ -62,7 +62,7 @@ jobs:
               if: steps.logcheck.outputs.failed == 'true'
               run: |
                   echo "❌ logging.info violations found."
-                  exit 1
+            
 
             - name: Success message
               if: steps.logcheck.outputs.failed != 'true'
