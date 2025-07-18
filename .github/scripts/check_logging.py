@@ -27,19 +27,10 @@ def parse_diff(filepath: str, diff_range: str) -> List[Tuple[int, str]]:
     lines = result.stdout.splitlines()
 
     print(lines)
-    current_line = 0
+    
     for line in lines:
-        if line.startswith("@@"):
-            # Parse hunk header to get starting line number
-            parts = line.split(" ")
-            new_file_range = parts[2]  # e.g., "+12,7"
-            start_line = int(new_file_range.split(",")[0][1:])
-            current_line = 0
-        elif line.startswith("+") and not line.startswith("+++"):
-            added_lines.append((current_line, line[1:]))  # remove '+' prefix
-            current_line += 1
-        elif not line.startswith("-"):
-            current_line += 1  # move to next line even if it's context
+        if line.startswith("+") and not line.startswith("+++"):
+            added_lines.append(line[1:])  # remove '+' prefix
 
     return added_lines
 
@@ -48,7 +39,8 @@ def check_logging_info(filepath: str, diff_range: str) -> bool:
     found = False
     try:
         added_lines = parse_diff(filepath, diff_range)
-        for line_number, content in added_lines:
+        error_lines = []
+        for content in added_lines:
             # Skip ignored lines
             if content.strip().endswith("#--- IGNORE ---"):
                 continue
@@ -63,10 +55,13 @@ def check_logging_info(filepath: str, diff_range: str) -> bool:
                         and stmt.func.attr == "info"
                         and getattr(stmt.func.value, "id", "") == "logging"
                     ):
-                        print(f"::error file={filepath},line={line_number}::Avoid using logging.info in production code.")
+                        error_lines.append(content)
                         found = True
             except SyntaxError:
                 continue
+            
+        if found:
+            print(f"::error file={filepath}::Found logging.info in the following lines: {"\n".join(error_lines)}")
     except subprocess.CalledProcessError as e:
         print(f"Failed to parse diff for {filepath}: {e}", file=sys.stderr)
     return found
