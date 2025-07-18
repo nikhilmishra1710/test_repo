@@ -86,6 +86,7 @@ def main():
             f.write(f"logging_info_violations_count={total_count}\n")
             f.write("logging_info_violations_detail=" + "%0A".join(per_file_violations) + "\n")  # %0A = newline in GitHub Actions
             f.write(f"failed={'true' if total_count > 0 else 'false'}\n")
+            print("Written in GITHUB_OUTPUT")
 
     if total_count > 0:
         sys.exit(1)
