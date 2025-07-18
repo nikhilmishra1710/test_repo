@@ -55,13 +55,8 @@ jobs:
               with:
                   header: logging-info-warning
                   message: |
-                      ⚠️ Detected ${{ steps.logcheck.outputs.logging_info_violations }} `logging.info` statements in the code.
-                      See the **Checks** tab for inline file annotations.
-            
-            - name: Fail job if violations were found
-              if: steps.logcheck.outputs.failed == 'true'
-              run: |
-                  echo "❌ logging.info violations found."
+                      ⚠️ Detected `${{ steps.logcheck.outputs.logging_info_violations }}` `logging.info` statements in the code.
+                      See the **Files changed** tab for inline file annotations.
             
 
             - name: Success message
