@@ -1,0 +1,89 @@
+name: Check Logging on PR
+
+on:
+    pull_request:
+        types: [opened, synchronize]
+        branches: [main]
+
+permissions:
+    contents: read
+    pull-requests: write
+    checks: write
+
+jobs:
+    check-logging:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout main (to get workflow and script)
+              uses: actions/checkout@v4
+              with:
+                  ref: main
+                  fetch-depth: 0
+
+            - name: Save check script from main
+              run: |
+                  mkdir -p /tmp/scripts
+                  cp .github/scripts/check_logging.py /tmp/scripts/
+
+            - name: Fetch PR HEAD
+              run: |
+                  git fetch origin ${{ github.event.pull_request.head.ref }}:${{ github.event.pull_request.head.ref }}
+
+            - name: Checkout PR code
+              run: git checkout ${{ github.event.pull_request.head.ref }}
+
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: 3.x
+
+            - name: Determine diff range
+              id: diff
+              run: |
+                  echo "range=origin/main...HEAD" >> $GITHUB_OUTPUT
+
+            - name: Run logging check
+              id: logcheck
+              env:
+                  DIFF_RANGE: ${{ steps.diff.outputs.range }}
+              run: |
+                  python /tmp/scripts/check_logging.py || echo "failed=true" >> $GITHUB_OUTPUT
+
+            - name: Upload annotations to Checks tab
+              id: upload_annotations
+              if: steps.logcheck.outputs.failed == 'true'
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const fs = require('fs');
+                      const annotations = JSON.parse(fs.readFileSync('annotations.json', 'utf8')).annotations;
+                      core.setOutput('total_annotations', annotations.length);
+                      await github.rest.checks.create({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        name: 'logging.info violations',
+                        head_sha: context.payload.pull_request.head.sha,
+                        status: 'completed',
+                        conclusion: 'neutral',
+                        output: {
+                          title: 'logging.info found',
+                          summary: `Found ${annotations.length} logging.info statements.`,
+                          annotations: annotations.slice(0, 50) // GitHub limit
+                        }
+                      });
+
+            - name: Comment on PR
+              if: steps.logcheck.outputs.failed == 'true'
+              uses: marocchino/sticky-pull-request-comment@v2
+              with:
+                  header: logging-info-warning
+                  message: |
+                      ⚠️ Detected ${{ steps.upload_annotations.outputs.total_annotations }} `logging.info` statements in the code.
+                      See the **Checks** tab for inline file annotations.
+            
+            - name: Fail job if violations were found
+              if: steps.logcheck.outputs.failed == 'true'
+              run: |
+                  echo "❌ logging.info violations found."
+                  exit 1
