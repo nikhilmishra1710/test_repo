@@ -1,1 +1,1 @@
-In PR where target branch is `main`, check the code for `logging.info` statements and fail the job if any are found. The code should also upload annotations to the Checks tab and display a warning message with the total count of `logging.info` statements detected.
+In PR where target branch is `main`, check the code for `logging.info` statements and add a single comment to the PR if any are found and where they are found. If none are found, add a success message.
