@@ -61,7 +61,7 @@ def check_logging_info(filepath: str, diff_range: str) -> bool:
                 continue
             
         if found:
-            print(f"::error file={filepath} line=0::Found logging.info in the following lines: {"\n".join(error_lines)}")
+            print(f"::error file={filepath},line=0::Found logging.info in the following lines: {"\n".join(error_lines)}")
     except subprocess.CalledProcessError as e:
         print(f"Failed to parse diff for {filepath}: {e}", file=sys.stderr)
     return found
