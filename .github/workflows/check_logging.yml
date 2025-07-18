@@ -49,28 +49,7 @@ jobs:
               run: |
                   python /tmp/scripts/check_logging.py || echo "failed=true" >> $GITHUB_OUTPUT
 
-            - name: Upload annotations to Checks tab
-              id: upload_annotations
-              if: steps.logcheck.outputs.failed == 'true'
-              uses: actions/github-script@v7
-              with:
-                  script: |
-                      const fs = require('fs');
-                      const annotations = JSON.parse(fs.readFileSync('annotations.json', 'utf8')).annotations;
-                      core.setOutput('total_annotations', annotations.length);
-                      await github.rest.checks.create({
-                        owner: context.repo.owner,
-                        repo: context.repo.repo,
-                        name: 'logging.info violations',
-                        head_sha: context.payload.pull_request.head.sha,
-                        status: 'completed',
-                        conclusion: 'neutral',
-                        output: {
-                          title: 'logging.info found',
-                          summary: `Found ${annotations.length} logging.info statements.`,
-                          annotations: annotations.slice(0, 50) // GitHub limit
-                        }
-                      });
+            
 
             - name: Comment on PR
               if: steps.logcheck.outputs.failed == 'true'
@@ -78,7 +57,7 @@ jobs:
               with:
                   header: logging-info-warning
                   message: |
-                      ⚠️ Detected ${{ steps.upload_annotations.outputs.total_annotations }} `logging.info` statements in the code.
+                      ⚠️ Detected `logging.info` statements in the code.
                       See the **Checks** tab for inline file annotations.
             
             - name: Fail job if violations were found
