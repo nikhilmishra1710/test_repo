@@ -57,9 +57,9 @@ def check_logging_info(filepath: str, diff_range: str) -> bool:
         for lineno, line in added_lines:
             line = line.strip()
             if (
-                "logging.info" in line
-                and "logging.error" not in line
-                and "#--- IGNORE ---" not in line
+                line.startswith("logging.info(")
+                
+                and not line.endswith("#--- IGNORE ---") 
             ):
                 print(f"::error file={filepath},line={lineno}::Avoid using logging.info in production code.")
                 found = True
