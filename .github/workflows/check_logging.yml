@@ -49,8 +49,6 @@ jobs:
               run: |
                   python /tmp/scripts/check_logging.py || echo "failed=true" >> $GITHUB_OUTPUT
 
-            
-
             - name: Comment on PR
               if: steps.logcheck.outputs.failed == 'true'
               uses: marocchino/sticky-pull-request-comment@v2
@@ -65,3 +63,12 @@ jobs:
               run: |
                   echo "❌ logging.info violations found."
                   exit 1
+
+            - name: Success message
+              if: steps.logcheck.outputs.failed != 'true'
+              uses: marocchino/sticky-pull-request-comment@v2
+              with: 
+                    header: logging-info-warning
+                    message: |
+                        ✅ No `logging.info` violations found.
+                    
