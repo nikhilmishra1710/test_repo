@@ -6,7 +6,6 @@ from typing import List, Tuple
 
 
 def get_changed_files(diff_range: str) -> List[str]:
-    """Return a list of changed Python files in the given diff range."""
     result = subprocess.run(
         ["git", "diff", "--name-only", diff_range],
         stdout=subprocess.PIPE,
@@ -17,9 +16,6 @@ def get_changed_files(diff_range: str) -> List[str]:
 
 
 def parse_diff_with_line_numbers(filepath: str, diff_range: str) -> List[Tuple[int, str]]:
-    """
-    Parse the diff for the given file and return added lines with accurate line numbers.
-    """
     result = subprocess.run(
         ["git", "diff", "--unified=0", diff_range, "--", filepath],
         stdout=subprocess.PIPE,
@@ -29,40 +25,34 @@ def parse_diff_with_line_numbers(filepath: str, diff_range: str) -> List[Tuple[i
 
     added_lines = []
     current_line = None
-    print(result.stdout.splitlines())  # Debugging output to see the diff content
     for line in result.stdout.splitlines():
         if line.startswith('@@'):
             match = re.search(r'\+(\d+)', line)
             if match:
                 current_line = int(match.group(1)) - 1
-                print(current_line)# initialize before first addition
         elif line.startswith('+') and not line.startswith('+++'):
             if current_line is not None:
                 current_line += 1
                 added_lines.append((current_line, line[1:].rstrip()))
         elif not line.startswith('-') and not line.startswith('---') and line != "\\ No newline at end of file":
             if current_line is not None:
-                current_line += 1  # skip unchanged lines in diff
+                current_line += 1
 
     return added_lines
 
 
-def check_logging_info(filepath: str, diff_range: str) -> bool:
-    """
-    Check for `logging.info(...)` usage in added lines of a given file.
-    """
+def check_logging_info(filepath: str, diff_range: str) -> int:
     count = 0
     try:
         added_lines = parse_diff_with_line_numbers(filepath, diff_range)
         for lineno, line in added_lines:
             line = line.strip()
-            if (line.startswith("logging.info(") and not line.endswith("#--- IGNORE ---")):
+            if line.startswith("logging.info(") and not line.endswith("#--- IGNORE ---"):
                 print(f"{filepath}:{lineno}: {line}")
                 print(f"::error file={filepath},line={lineno}::Avoid using logging.info in production code.")
                 count += 1
     except subprocess.CalledProcessError as e:
         print(f"Failed to parse diff for {filepath}: {e}", file=sys.stderr)
-
     return count
 
 
@@ -70,24 +60,31 @@ def main():
     diff_range = os.environ.get("DIFF_RANGE", "HEAD^..HEAD")
     changed_files = get_changed_files(diff_range)
 
-    total_count = 0
-    per_file_violations = []
+    file_counts = {}
+    total_violations = 0
 
     for file in changed_files:
         if os.path.exists(file):
-            violations = check_logging_info(file, diff_range)
-            if violations > 0:
-                per_file_violations.append(f"{file}: {violations}")
-                total_count += violations
+            count = check_logging_info(file, diff_range)
+            if count > 0:
+                file_counts[file] = count
+                total_violations += count
+
+    markdown_table = "```\n| File               | Count |\n|--------------------|--------|\n"
+    for file, count in file_counts.items():
+        markdown_table += f"| {file.ljust(19)} | {str(count).rjust(5)} |\n"
+    markdown_table += "```"
 
     github_output = os.environ.get("GITHUB_OUTPUT")
     if github_output:
-        print(f"{per_file_violations}")
         with open(github_output, "a") as f:
-            f.write(f"logging_info_violations_count={total_count}\n")
-            f.write("logging_info_violations_detail=" + " || ".join(per_file_violations) + "\n")  # %0A = newline in GitHub Actions
-            f.write(f"failed={'true' if total_count > 0 else 'false'}\n")
-            print("Written in GITHUB_OUTPUT")
+            f.write(f"logging_info_violations_count={total_violations}\n")
+            f.write(f"logging_info_table={markdown_table}\n")
+            f.write(f"failed={'true' if total_violations > 0 else 'false'}\n")
+
+    if total_violations > 0:
+        sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
