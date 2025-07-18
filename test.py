@@ -1,4 +1,4 @@
 import logging
 
-logging.debug("hello world")
+logging.debug("hel lo world")
 logging.debug("Byee world")
