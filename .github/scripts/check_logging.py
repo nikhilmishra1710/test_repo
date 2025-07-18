@@ -1,51 +1,87 @@
 import os
-import re
 import subprocess
 import sys
+import ast
+from typing import List, Tuple
 
-def check_for_logging_info():
-    # Get staged files
-    diff_range = os.environ.get("DIFF_RANGE", "HEAD^..HEAD")
+def get_changed_files(diff_range: str) -> List[str]:
+    """Return a list of changed Python files in the given diff range."""
     result = subprocess.run(
-        ['git', 'diff', '--name-only', diff_range],
+        ["git", "diff", "--name-only", diff_range],
         stdout=subprocess.PIPE,
-        text=True
+        text=True,
+        check=True
     )
-    staged_files = result.stdout.splitlines()
+    return [f.strip() for f in result.stdout.splitlines() if f.endswith(".py")]
 
-    # Filter for Python files
-    python_files = [f for f in staged_files if f.endswith('.py')]
+def parse_diff(filepath: str, diff_range: str) -> List[Tuple[int, str]]:
+    """Parse the diff to get added or changed lines with line numbers."""
+    result = subprocess.run(
+        ["git", "diff", diff_range, "--", filepath],
+        stdout=subprocess.PIPE,
+        text=True,
+        check=True
+    )
 
-    if not python_files:
-        return 0  # No Python files changed, success
+    added_lines = []
+    lines = result.stdout.splitlines()
 
-    pattern = re.compile(r'logging\.info\(')
-    violations = []
+    current_line = None
+    for line in lines:
+        if line.startswith("@@"):
+            # Parse hunk header to get starting line number
+            parts = line.split(" ")
+            new_file_range = parts[2]  # e.g., "+12,7"
+            start_line = int(new_file_range.split(",")[0][1:])
+            current_line = start_line
+        elif line.startswith("+") and not line.startswith("+++"):
+            added_lines.append((current_line, line[1:]))  # remove '+' prefix
+            current_line += 1
+        elif not line.startswith("-"):
+            current_line += 1  # move to next line even if it's context
 
-    for file_path in python_files:
-        # Get the diff for this file
-        diff_result = subprocess.run(
-            ['git', 'diff', '--cached', '--', file_path],
-            stdout=subprocess.PIPE,
-            text=True
-        )
-        diff = diff_result.stdout
+    return added_lines
 
-        # Check each added line in the diff
-        for line in diff.split('\n'):
-            if line.startswith('+') and not line.startswith('+++'):
-                print(f"Checking line: {line.strip()} in {file_path}")
-                if pattern.search(line) and not line.endswith('#--- IGNORE ---'):
-                    violations.append((file_path, line.strip()))
+def check_logging_info(filepath: str, diff_range: str) -> bool:
+    """Check for logging.info in added lines of a given file."""
+    found = False
+    try:
+        added_lines = parse_diff(filepath, diff_range)
+        for line_number, content in added_lines:
+            # Skip ignored lines
+            if content.strip().endswith("#--- IGNORE ---"):
+                continue
 
-    if violations:
-        print("\nERROR: Found logging.info statements in changes:")
-        for file_path, line in violations:
-            print(f"::error file={file_path},line={line}::  Avoid logging.info")
-        print("\nPlease remove logging.info statements before committing.")
-        return 1
+            # Use AST to detect logging.info(...)
+            try:
+                node = ast.parse(content, mode="exec")
+                for stmt in ast.walk(node):
+                    if (
+                        isinstance(stmt, ast.Call)
+                        and isinstance(stmt.func, ast.Attribute)
+                        and stmt.func.attr == "info"
+                        and getattr(stmt.func.value, "id", "") == "logging"
+                    ):
+                        print(f"::error file={filepath},line={line_number}::Avoid using logging.info in production code.")
+                        found = True
+            except SyntaxError:
+                continue
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to parse diff for {filepath}: {e}", file=sys.stderr)
+    return found
 
-    return 0
+def main():
+    diff_range = os.environ.get("DIFF_RANGE", "HEAD^..HEAD")
+    changed_files = get_changed_files(diff_range)
 
-if __name__ == '__main__':
-    sys.exit(check_for_logging_info())
+    had_error = False
+    for file in changed_files:
+        if os.path.exists(file):
+            if check_logging_info(file, diff_range):
+                had_error = True
+
+    if had_error:
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
