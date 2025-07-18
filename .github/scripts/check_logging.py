@@ -40,7 +40,7 @@ def parse_diff_with_line_numbers(filepath: str, diff_range: str) -> List[Tuple[i
             if current_line is not None:
                 current_line += 1
                 added_lines.append((current_line, line[1:].rstrip()))
-        elif not line.startswith('-') and not line.startswith('---') and line != "\\\\ No newline at end of file":
+        elif not line.startswith('-') and not line.startswith('---') and line != "\\ No newline at end of file":
             if current_line is not None:
                 current_line += 1  # skip unchanged lines in diff
 
