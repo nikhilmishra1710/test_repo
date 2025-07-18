@@ -56,11 +56,7 @@ def check_logging_info(filepath: str, diff_range: str) -> bool:
         added_lines = parse_diff_with_line_numbers(filepath, diff_range)
         for lineno, line in added_lines:
             line = line.strip()
-            if (
-                line.startswith("logging.info(")
-                
-                and not line.endswith("#--- IGNORE ---") 
-            ):
+            if (line.startswith("logging.info(") and not line.endswith("#--- IGNORE ---")):
                 print(f"{filepath}:{lineno}: {line}")
                 print(f"::error file={filepath},line={lineno}::Avoid using logging.info in production code.")
                 count += 1
@@ -74,15 +70,16 @@ def main():
     diff_range = os.environ.get("DIFF_RANGE", "HEAD^..HEAD")
     changed_files = get_changed_files(diff_range)
 
-    total_violations = 0
+    total_violations = []
     for file in changed_files:
         if os.path.exists(file):
-            total_violations += check_logging_info(file, diff_range)
+            violations = check_logging_info(file, diff_range)
+            total_violations.append(f"{file}: {violations}")
             
     github_output = os.environ.get("GITHUB_OUTPUT")
     if github_output:
         with open(github_output, "a") as f:
-            f.write(f"logging_info_violations={int(total_violations)}\n")
+            f.write(f"logging_info_violations={"\n".join(total_violations)}\n")
     
     if total_violations > 0:
         sys.exit(1)
