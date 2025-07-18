@@ -89,10 +89,5 @@ def main():
             f.write(f"failed={'true' if total_count > 0 else 'false'}\n")
             print("Written in GITHUB_OUTPUT")
 
-    if total_count > 0:
-        sys.exit(1)
-
-
-
 if __name__ == "__main__":
     main()
