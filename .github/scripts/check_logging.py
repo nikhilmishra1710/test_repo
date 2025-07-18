@@ -81,7 +81,7 @@ def main():
         with open(github_output, "a") as f:
             f.write(f"logging_info_violations={"\n".join(total_violations)}\n")
     
-    if total_violations > 0:
+    if total_violations:
         sys.exit(1)
 
 
