@@ -1,8 +1,9 @@
 import os
 import subprocess
 import sys
-import ast
+import re
 from typing import List, Tuple
+
 
 def get_changed_files(diff_range: str) -> List[str]:
     """Return a list of changed Python files in the given diff range."""
@@ -14,8 +15,11 @@ def get_changed_files(diff_range: str) -> List[str]:
     )
     return [f.strip() for f in result.stdout.splitlines() if f.endswith(".py")]
 
-def parse_diff(filepath: str, diff_range: str) -> List[Tuple[int, str]]:
-    """Parse the diff to get added or changed lines with line numbers."""
+
+def parse_diff_with_line_numbers(filepath: str, diff_range: str) -> List[Tuple[int, str]]:
+    """
+    Parse the diff for the given file and return added lines with accurate line numbers.
+    """
     result = subprocess.run(
         ["git", "diff", "--unified=0", diff_range, "--", filepath],
         stdout=subprocess.PIPE,
@@ -24,47 +28,45 @@ def parse_diff(filepath: str, diff_range: str) -> List[Tuple[int, str]]:
     )
 
     added_lines = []
-    lines = result.stdout.splitlines()
+    current_line = None
 
-    print(lines)
-    
-    for line in lines:
-        if line.startswith("+") and not line.startswith("+++"):
-            added_lines.append(line[1:])  # remove '+' prefix
+    for line in result.stdout.splitlines():
+        if line.startswith('@@'):
+            match = re.search(r'\+(\d+)', line)
+            if match:
+                current_line = int(match.group(1)) - 1  # initialize before first addition
+        elif line.startswith('+') and not line.startswith('+++'):
+            if current_line is not None:
+                current_line += 1
+                added_lines.append((current_line, line[1:].rstrip()))
+        elif not line.startswith('-'):
+            if current_line is not None:
+                current_line += 1  # skip unchanged lines in diff
 
     return added_lines
 
+
 def check_logging_info(filepath: str, diff_range: str) -> bool:
-    """Check for logging.info in added lines of a given file."""
+    """
+    Check for `logging.info(...)` usage in added lines of a given file.
+    """
     found = False
     try:
-        added_lines = parse_diff(filepath, diff_range)
-        error_lines = []
-        for content in added_lines:
-            # Skip ignored lines
-            if content.strip().endswith("#--- IGNORE ---"):
-                continue
-
-            # Use AST to detect logging.info(...)
-            try:
-                node = ast.parse(content, mode="exec")
-                for stmt in ast.walk(node):
-                    if (
-                        isinstance(stmt, ast.Call)
-                        and isinstance(stmt.func, ast.Attribute)
-                        and stmt.func.attr == "info"
-                        and getattr(stmt.func.value, "id", "") == "logging"
-                    ):
-                        error_lines.append(content)
-                        found = True
-            except SyntaxError:
-                continue
-            
-        if found:
-            print(f"::error file={filepath},line=1::Found logging.info in the following lines: {"\n".join(error_lines)}")
+        added_lines = parse_diff_with_line_numbers(filepath, diff_range)
+        for lineno, line in added_lines:
+            line = line.strip()
+            if (
+                "logging.info" in line
+                and "logging.error" not in line
+                and "#--- IGNORE ---" not in line
+            ):
+                print(f"::error file={filepath},line={lineno}::Avoid using logging.info in production code.")
+                found = True
     except subprocess.CalledProcessError as e:
         print(f"Failed to parse diff for {filepath}: {e}", file=sys.stderr)
+
     return found
+
 
 def main():
     diff_range = os.environ.get("DIFF_RANGE", "HEAD^..HEAD")
@@ -78,6 +80,7 @@ def main():
 
     if had_error:
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
