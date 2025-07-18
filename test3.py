@@ -10,7 +10,7 @@ class LoggingInfoClass:
     
     def another_log_method(self):
         if "Some condition" in "Some world":
-            logging.info("Condition met in another_log_method")
+            logging.info("Condition met in another_log_method") #--- IGNORE ---
             logging.debug("Debugging another_log_method")
         else:
             logging.warning("Condition not met in another_log_method")
