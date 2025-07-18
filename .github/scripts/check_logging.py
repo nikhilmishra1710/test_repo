@@ -61,6 +61,7 @@ def check_logging_info(filepath: str, diff_range: str) -> bool:
                 
                 and not line.endswith("#--- IGNORE ---") 
             ):
+                print(f"{filepath}:{lineno}: {line}")
                 print(f"::error file={filepath},line={lineno}::Avoid using logging.info in production code.")
                 found = True
     except subprocess.CalledProcessError as e:
