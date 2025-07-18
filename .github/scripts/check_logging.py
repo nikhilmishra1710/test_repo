@@ -34,6 +34,7 @@ def check_for_logging_info():
         # Check each added line in the diff
         for line in diff.split('\n'):
             if line.startswith('+') and not line.startswith('+++'):
+                print(f"Checking line: {line.strip()} in {file_path}")
                 if pattern.search(line) and not line.endswith('#--- IGNORE ---'):
                     violations.append((file_path, line.strip()))
 
