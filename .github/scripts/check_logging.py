@@ -26,6 +26,7 @@ def parse_diff(filepath: str, diff_range: str) -> List[Tuple[int, str]]:
     added_lines = []
     lines = result.stdout.splitlines()
 
+    print(lines)
     current_line = None
     for line in lines:
         if line.startswith("@@"):
