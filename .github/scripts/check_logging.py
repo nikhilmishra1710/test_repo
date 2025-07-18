@@ -17,7 +17,7 @@ def get_changed_files(diff_range: str) -> List[str]:
 def parse_diff(filepath: str, diff_range: str) -> List[Tuple[int, str]]:
     """Parse the diff to get added or changed lines with line numbers."""
     result = subprocess.run(
-        ["git", "diff", diff_range, "--", filepath],
+        ["git", "diff", "--unified=0", diff_range, "--", filepath],
         stdout=subprocess.PIPE,
         text=True,
         check=True
@@ -27,14 +27,14 @@ def parse_diff(filepath: str, diff_range: str) -> List[Tuple[int, str]]:
     lines = result.stdout.splitlines()
 
     print(lines)
-    current_line = None
+    current_line = 0
     for line in lines:
         if line.startswith("@@"):
             # Parse hunk header to get starting line number
             parts = line.split(" ")
             new_file_range = parts[2]  # e.g., "+12,7"
             start_line = int(new_file_range.split(",")[0][1:])
-            current_line = start_line
+            current_line = 0
         elif line.startswith("+") and not line.startswith("+++"):
             added_lines.append((current_line, line[1:]))  # remove '+' prefix
             current_line += 1
