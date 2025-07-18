@@ -82,6 +82,7 @@ def main():
 
     github_output = os.environ.get("GITHUB_OUTPUT")
     if github_output:
+        print(f"{per_file_violations}")
         with open(github_output, "a") as f:
             f.write(f"logging_info_violations_count={total_count}\n")
             f.write("logging_info_violations_detail=" + "%0A".join(per_file_violations) + "\n")  # %0A = newline in GitHub Actions
