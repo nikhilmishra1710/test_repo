@@ -29,7 +29,7 @@ def parse_diff_with_line_numbers(filepath: str, diff_range: str) -> List[Tuple[i
 
     added_lines = []
     current_line = None
-
+    print(result.stdout.splitlines())  # Debugging output to see the diff content
     for line in result.stdout.splitlines():
         if line.startswith('@@'):
             match = re.search(r'\+(\d+)', line)
