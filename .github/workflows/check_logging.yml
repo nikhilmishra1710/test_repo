@@ -44,7 +44,12 @@ jobs:
                   else
                       DETAILS=$(echo "$DETAILS" | sed 's/;/\n/g')
                   fi
-                  echo "details=$DETAILS" >> $GITHUB_OUTPUT
+                  {
+                    echo "details<<EOF"
+                    echo "$DETAILS"
+                    echo "EOF"
+                  } >> "$GITHUB_OUTPUT"
+
 
             - name: Comment on PR (violations found)
               if: steps.logcheck.outputs.failed == 'true'

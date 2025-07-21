@@ -64,19 +64,20 @@ def main():
 
     file_counts = {}
     total_violations = 0
-
+    op = ""
     for file in changed_files:
         if os.path.exists(file):
             count, output = check_logging_info(file, diff_range)
             if count > 0:
                 file_counts[file] = count
                 total_violations += count
+                op += output
 
     github_output = os.environ.get("GITHUB_OUTPUT")
     if github_output:
         with open(github_output, "a") as f:
             f.write(f"logging_info_violations_count={total_violations}\n") 
-            f.write(f"logging_info_violations_details={output}\n")
+            f.write(f"logging_info_violations_details={op}\n")
             f.write(f"failed={'true' if total_violations > 0 else 'false'}\n")
 
 
