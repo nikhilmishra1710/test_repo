@@ -43,6 +43,7 @@ def parse_diff_with_line_numbers(filepath: str, diff_range: str) -> List[Tuple[i
 
 def check_logging_info(filepath: str, diff_range: str) -> int:
     count = 0
+    output = ""
     try:
         added_lines = parse_diff_with_line_numbers(filepath, diff_range)
         for lineno, line in added_lines:
@@ -50,10 +51,11 @@ def check_logging_info(filepath: str, diff_range: str) -> int:
             if line.startswith("logging.info(") and not line.endswith("#--- IGNORE ---"):
                 print(f"{filepath}:{lineno}: {line}")
                 print(f"::error file={filepath},line={lineno}::Avoid using logging.info in production code.")
+                output += f"{filepath}:{lineno}: {line}\n"
                 count += 1
     except subprocess.CalledProcessError as e:
         print(f"Failed to parse diff for {filepath}: {e}", file=sys.stderr)
-    return count
+    return count, output
 
 
 def main():
@@ -65,7 +67,7 @@ def main():
 
     for file in changed_files:
         if os.path.exists(file):
-            count = check_logging_info(file, diff_range)
+            count, output = check_logging_info(file, diff_range)
             if count > 0:
                 file_counts[file] = count
                 total_violations += count
@@ -74,6 +76,7 @@ def main():
     if github_output:
         with open(github_output, "a") as f:
             f.write(f"logging_info_violations_count={total_violations}\n") 
+            f.write(f"logging_info_violations_details={output}\n")
             f.write(f"failed={'true' if total_violations > 0 else 'false'}\n")
 
 
