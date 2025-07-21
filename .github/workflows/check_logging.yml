@@ -59,7 +59,7 @@ jobs:
                   message: |
                       ⚠️ Detected ${{ steps.logcheck.outputs.logging_info_violations_count }} `logging.info` statements in the code.
                       Please review the following occurrences:
-                      `${{ steps.set-output.outputs.details }}`
+                      ```${{ steps.set-output.outputs.details }}```
                       See the **Files changed** tab for inline annotations.
 
             - name: Comment on PR (no violations)
