@@ -14,23 +14,10 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-            - name: Checkout main (to get workflow and script)
+            - name: Checkout PR code
               uses: actions/checkout@v4
               with:
-                  ref: main
                   fetch-depth: 0
-
-            - name: Save check script from main
-              run: |
-                  mkdir -p /tmp/scripts
-                  cp .github/scripts/check_logging.py /tmp/scripts/
-
-            - name: Fetch PR HEAD
-              run: |
-                  git fetch origin ${{ github.event.pull_request.head.ref }}:${{ github.event.pull_request.head.ref }}
-
-            - name: Checkout PR code
-              run: git checkout ${{ github.event.pull_request.head.ref }}
 
             - name: Set up Python
               uses: actions/setup-python@v5
@@ -39,31 +26,28 @@ jobs:
 
             - name: Determine diff range
               id: diff
-              run: |
-                  echo "range=origin/main...HEAD" >> $GITHUB_OUTPUT
+              run: echo "range=origin/main...HEAD" >> $GITHUB_OUTPUT
 
             - name: Run logging check
               id: logcheck
               env:
                   DIFF_RANGE: ${{ steps.diff.outputs.range }}
               run: |
-                  python /tmp/scripts/check_logging.py
+                  python .github/scripts/check_logging.py
 
-            - name: Comment on PR
+            - name: Comment on PR (violations found)
               if: steps.logcheck.outputs.failed == 'true'
               uses: marocchino/sticky-pull-request-comment@v2
               with:
                   header: logging-info-warning
                   message: |
-                      ⚠️ Detected `${{ steps.logcheck.outputs.logging_info_violations_count }}` `logging.info` statements in the code.
-                      See the **Files changed** tab for inline file annotations.
-            
+                      ⚠️ Detected `logging.info` statements in the code.
+                      See the **Checks** tab for inline annotations.
 
-            - name: Success message
+            - name: Comment on PR (no violations)
               if: steps.logcheck.outputs.failed != 'true'
               uses: marocchino/sticky-pull-request-comment@v2
-              with: 
-                    header: logging-info-warning
-                    message: |
-                        ✅ No `logging.info` violations found.
-                    
+              with:
+                  header: logging-info-warning
+                  message: |
+                      ✅ No `logging.info` violations found.
