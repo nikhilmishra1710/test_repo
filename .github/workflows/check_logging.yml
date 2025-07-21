@@ -56,7 +56,6 @@ jobs:
                   header: logging-info-warning
                   message: |
                       ⚠️ Detected `${{ steps.logcheck.outputs.logging_info_violations_count }}` `logging.info` statements in the code.
-                      `${{ steps.logcheck.outputs.logging_info_violations_detail }}`
                       See the **Files changed** tab for inline file annotations.
             
 
