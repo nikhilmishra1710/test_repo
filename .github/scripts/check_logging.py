@@ -73,7 +73,7 @@ def main():
     github_output = os.environ.get("GITHUB_OUTPUT")
     if github_output:
         with open(github_output, "a") as f:
-            f.write(f"logging_info_violations_count={total_violations}\n")
+            f.write(f"logging_info_violations_count={total_violations}\n") 
             f.write(f"failed={'true' if total_violations > 0 else 'false'}\n")
 
 
