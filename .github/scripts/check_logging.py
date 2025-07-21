@@ -70,22 +70,11 @@ def main():
                 file_counts[file] = count
                 total_violations += count
 
-    markdown_table = "```\n| File               | Count |\n|--------------------|--------|\n"
-    for file, count in file_counts.items():
-        markdown_table += f"| {file.ljust(19)} | {str(count).rjust(5)} |\n"
-    markdown_table += "```"
-
     github_output = os.environ.get("GITHUB_OUTPUT")
     if github_output:
         with open(github_output, "a") as f:
             f.write(f"logging_info_violations_count={total_violations}\n")
             f.write(f"failed={'true' if total_violations > 0 else 'false'}\n")
-
-    with open("logging_violation_table.txt", "w") as table_file:
-        table_file.write(markdown_table)
-
-    if total_violations > 0:
-        sys.exit(1)
 
 
 if __name__ == "__main__":
