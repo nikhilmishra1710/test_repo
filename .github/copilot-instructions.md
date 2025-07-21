@@ -1,1 +1,2 @@
-1. In PR where target branch is `main`, check the code for `logging.info` statements and add annotation to the PR if any are found and where they are found. If none are found, add a success message.
+1. In PR where target branch is `main`, check the code for `logging.info` statements and add annotation to the PR if any are found and where they are found. If none are found, add a success message also comment on the PR the number of violations found.
+2. If violations are found, create a markdown table with the file names and line numbers where `logging.info` statements are found.

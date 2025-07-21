@@ -79,8 +79,10 @@ def main():
     if github_output:
         with open(github_output, "a") as f:
             f.write(f"logging_info_violations_count={total_violations}\n")
-            f.write(f"logging_info_table={markdown_table}\n")
             f.write(f"failed={'true' if total_violations > 0 else 'false'}\n")
+
+    with open("logging_violation_table.txt", "w") as table_file:
+        table_file.write(markdown_table)
 
     if total_violations > 0:
         sys.exit(1)
