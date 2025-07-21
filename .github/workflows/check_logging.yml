@@ -35,6 +35,17 @@ jobs:
               run: |
                   python .github/scripts/check_logging.py
 
+            - name: Set output variables
+              id: set-output
+              run: |
+                  DETAILS="${{ steps.logcheck.outputs.logging_info_violations_details }}"
+                  if [ -z "$DETAILS" ]; then
+                      DETAILS="No `logging.info` violations found."
+                  else
+                      DETAILS=$(echo "$DETAILS" | sed 's/;/\n/g')
+                  fi
+                  echo "details=$DETAILS" >> $GITHUB_OUTPUT
+
             - name: Comment on PR (violations found)
               if: steps.logcheck.outputs.failed == 'true'
               uses: marocchino/sticky-pull-request-comment@v2
@@ -42,7 +53,9 @@ jobs:
                   header: logging-info-warning
                   message: |
                       ⚠️ Detected ${{ steps.logcheck.outputs.logging_info_violations_count }} `logging.info` statements in the code.
-                      See the **Checks** tab for inline annotations.
+                      Please review the following occurrences:
+                      ${{ steps.set-output.outputs.details }}
+                      See the **Files changed** tab for inline annotations.
 
             - name: Comment on PR (no violations)
               if: steps.logcheck.outputs.failed != 'true'

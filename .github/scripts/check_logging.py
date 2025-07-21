@@ -51,7 +51,7 @@ def check_logging_info(filepath: str, diff_range: str) -> int:
             if line.startswith("logging.info(") and not line.endswith("#--- IGNORE ---"):
                 print(f"{filepath}:{lineno}: {line}")
                 print(f"::error file={filepath},line={lineno}::Avoid using logging.info in production code.")
-                output += f"{filepath}:{lineno}: {line}\n"
+                output += f"{filepath}:{lineno}: {line};"
                 count += 1
     except subprocess.CalledProcessError as e:
         print(f"Failed to parse diff for {filepath}: {e}", file=sys.stderr)
