@@ -47,7 +47,7 @@ def check_logging_info(filepath: str, diff_range: str) -> int:
         added_lines = parse_diff_with_line_numbers(filepath, diff_range)
         for lineno, line in added_lines:
             line = line.strip()
-            if line.startswith("logging.info(") and not line.endswith("#--- IGNORE ---"):
+            if line.startswith("logging.info\(") and not line.endswith("#--- IGNORE ---"):
                 print(f"{filepath}:{lineno}: {line}")
                 print(f"::error file={filepath},line={lineno}::Avoid using logging.info in production code.")
                 count += 1
