@@ -15,3 +15,8 @@ class ExampleClass:
         else:
             logging.warning("Condition not met in another_method")
             
+            
+    def yet_another_method(self):
+        logging.info("This is yet another info message")
+        logging.debug("This is yet another debug message")
+            
